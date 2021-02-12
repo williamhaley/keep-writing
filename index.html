@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Writing Motivation</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        width: 100vw;
+        height: 100vh;
+      }
+      .container {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        grid-template-areas: 
+          "header"
+          "main"
+          "footer";
+      }
+      header {
+        padding: 0.5em;
+        grid-area: header;
+      }
+      main {
+        grid-area: main;
+        padding: 1em;
+      }
+      footer {
+        grid-area: footer;
+        text-align: center;
+        padding: 1em;
+      }
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        height: 100%;
+        padding: 1em;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+
+    <header>
+      <h2>Keep Writing!</h2>
+      <h3><span id="soFar"></span> / <span id="goal"></span> <span id="rate"></span></h3>
+      <form>
+        <input type="date" name="goalDate" required />
+        <input type="number" name="goalWordCount" placeholder="" required />
+        <button>Update Goals</button>
+      </form>
+    </header>
+    <main>
+    <textarea></textarea>
+    </main>
+
+    <footer>Copyright - Pengor 2021</footer>
+  </div>
+
+  <script>
+    const dateToString = (input) => {
+      const date = `${input.getDate()}`.padStart(2, '0');
+      const month = `${input.getMonth() + 1}`.padStart(2, '0');
+      return `${input.getFullYear()}-${month}-${date}`;
+    };
+
+    const debounce = (func, time) => {
+      let timer;
+      return function () {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          func(...arguments);
+        }, time);
+      };
+    };
+  </script>
+  <script>
+    const $form = document.querySelector('form');
+    const $textarea = document.querySelector('textarea');
+    const $goalDate = document.querySelector('input[name="goalDate"]');
+    const $goalWordCount = document.querySelector('input[name="goalWordCount"]');
+    const $soFar = document.querySelector('#soFar');
+    const $goal = document.querySelector('#goal');
+    const $rate = document.querySelector('#rate');
+
+    const savedText = localStorage['text'] || '';
+    let goalDate = localStorage['goalDate'] ? new Date(localStorage['goalDate']) : new Date();
+    let goalWordCount = parseInt(localStorage['goalWordCount'] || 50000);
+    let currentCount = savedText.split(' ').length;
+    let diffTime = Math.abs(goalDate - new Date());
+    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+    console.log(`loaded - text:${savedText.substr(0, 10)}... date:${goalDate} currentCount:${goalWordCount}`);
+
+    $textarea.value = savedText;
+    $goalDate.min = dateToString(new Date());
+    $goalDate.value = dateToString(goalDate);
+    $goalWordCount.value = goalWordCount;
+    $soFar.textContent = currentCount;
+    $goal.textContent = goalWordCount;
+
+    const refreshRate = () => {
+      const rate = (goalWordCount - currentCount) / diffDays;
+      $rate.textContent = `${rate.toFixed(2)} words per day`;
+    };
+
+    refreshRate();
+
+    const saveText = debounce((event) => {
+      const text = event.target.value;
+      currentCount = text.split(' ').length;
+      console.log(`saving '${currentCount}' words`);
+      localStorage['text'] = text;
+      $soFar.textContent = currentCount;
+      refreshRate();
+    }, 200);
+
+    $form.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+
+      goalDate = new Date(formData.get('goalDate'));
+      goalWordCount = formData.get('goalWordCount');
+
+      localStorage['goalDate'] = goalDate.toString();
+      localStorage['goalWordCount'] = `${goalWordCount}`;
+      console.log(`saved - date:${goalDate} currentCount:${goalWordCount}`);
+      $goal.textContent = goalWordCount;
+      diffTime = Math.abs(goalDate - new Date());
+      diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      refreshRate();
+    });
+
+    $textarea.addEventListener('change', saveText);
+    $textarea.addEventListener('keyup', saveText);
+  </script>
+  </body>
+</html>
